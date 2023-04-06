@@ -1,0 +1,337 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+using namespace std;
+class Room {
+private:
+    int roomNumber;
+    string roomType;
+    bool available;
+    float roomRate;
+public:
+    Room(int roomNumber, string roomType) {
+        this->roomNumber = roomNumber;
+        this->roomType = roomType;
+        this->available = true;
+        this->roomRate = roomRate;
+    }
+    int getRoomNumber() const{
+        return roomNumber;
+    }
+    string getRoomType() const{
+        return roomType;
+    }
+    bool isAvailable() const{
+        return available;
+    }
+    void setAvailability(bool availability) {
+        this->available = availability;
+    }
+    float getRoomRate() const{
+        return roomRate;
+    }
+};
+class Customer {
+private:
+    string name;
+    string address;
+    string phoneNumber;
+public:
+    Customer(string name, string address, string phoneNumber) {
+        this->name = name;
+        this->address = address;
+        this->phoneNumber = phoneNumber;
+    }
+    string getName() {
+        return name;
+    }
+    string getAddress() {
+        return address;
+    }
+    string getPhoneNumber() {
+        return phoneNumber;
+    }
+};
+class Reservation {
+private:
+    Room* room;
+    Customer* customer;
+    string checkInDate;
+    string checkOutDate;
+public:
+    Reservation(Room* room, Customer* customer, string checkInDate, string checkOutDate) {
+        this->room = room;
+        this->customer = customer;
+        this->checkInDate = checkInDate;
+        this->checkOutDate = checkOutDate;
+    }
+    Room* getRoom() const{
+        return room;
+    }
+    Customer* getCustomer() const{
+        return customer;
+    }
+    string getCheckInDate() const{
+        return checkInDate;
+    }
+    string getCheckOutDate() const{
+        return checkOutDate;
+    }
+    void setCheckOutDate(string checkOutDate) {
+        this->checkOutDate = checkOutDate;
+    }
+    void checkOut() {
+        room->setAvailability(true);
+    }
+    float getTotalBill() const{
+        int nights = (checkOutDate) - (checkInDate); //Calculate number of nights by subtracting check-in date from check-out date
+        return nights * room->getRoomRate(); //Multiply number of nights by room rate to get total bill
+    }
+};
+class Hotel {
+private:
+    vector<Room*> rooms;
+    vector<Reservation*> reservations;
+public:
+    void createRoom(int roomNumber, string roomType) {
+        Room* room = new Room(roomNumber, roomType);
+        rooms.push_back(room);
+    }
+    void deleteRoom(int roomNumber) {
+        for (auto it = rooms.begin(); it != rooms.end(); ++it) {
+            if ((*it)->getRoomNumber() == roomNumber) {
+                rooms.erase(it);
+                break;
+            }
+        }
+    }
+    void updateRoomAvailability(int roomNumber, bool availability) {
+        for (auto it = rooms.begin(); it != rooms.end(); ++it) {
+            if ((*it)->getRoomNumber() == roomNumber) {
+                (*it)->setAvailability(availability);
+                break;
+            }
+        }
+    }
+    void checkIn(int roomNumber, string roomType, string customerName, string customerAddress, string customerPhoneNumber, string checkInDate, string checkOutDate) {
+        Room* room = nullptr;
+        for (auto it = rooms.begin(); it != rooms.end(); ++it) {
+            if ((*it)->getRoomNumber() == roomNumber && (*it)->getRoomType() == roomType && (*it)->isAvailable()) {
+                room = *it;
+                break;
+            }
+        }
+        if (room == nullptr) {
+            cout << "Sorry, no available rooms match that criteria." << endl;
+            return;
+        }
+        Customer* customer = new Customer(customerName, customerAddress, customerPhoneNumber);
+        Reservation* reservation = new Reservation(room, customer, checkInDate, checkOutDate);
+        reservations.push_back(reservation);
+        room->setAvailability(false);
+        cout << "Check-in successful. Room " << roomNumber << " is reserved for " << customerName << " from " << checkInDate << " to " << checkOutDate << "." << endl;
+    }
+    vector<Room*> getAvailableRooms(string checkInDate, string checkOutDate) {
+        vector<Room*> availableRooms;
+        for (auto it = rooms.begin(); it != rooms.end(); ++it) {
+            if ((*it)->isAvailable()) {
+                availableRooms.push_back(*it);
+            }
+        }
+        for (auto it = reservations.begin(); it != reservations.end(); ++it) {
+            if ((*it)->getCheckOutDate() >= checkInDate && (*it)->getCheckInDate() <= checkOutDate) {
+                Room* reservedRoom = (*it)->getRoom();
+                availableRooms.erase(remove(availableRooms.begin(), availableRooms.end(), reservedRoom), availableRooms.end());
+            }
+        }
+        return availableRooms;
+    }
+    vector<Reservation*> searchCustomer(string customerName, string customerPhoneNumber) {
+        vector<Reservation*> customerReservations;
+        for (auto it = reservations.begin(); it != reservations.end(); ++it) {
+            Customer* customer = (*it)->getCustomer();
+            if (customer->getName() == customerName || customer->getPhoneNumber() == customerPhoneNumber) {
+                customerReservations.push_back(*it);
+            }
+        }
+        return customerReservations;
+    }
+    void checkOut(int roomNumber, string checkOutDate) {
+        for (auto it = reservations.begin(); it != reservations.end(); ++it) {
+            Reservation* reservation = (*it);
+            if (reservation->getRoom()->getRoomNumber() == roomNumber) {
+                reservation->setCheckOutDate(checkOutDate);
+                reservation->checkOut();
+                cout << "Check-out successful. Room " << roomNumber << " is now available." << endl;
+                return;
+            }
+        }
+        cout << "No reservation found for room " << roomNumber << "." << endl;
+    }
+    void generateGuestSummaryReport() {
+        cout << "Guest Summary Report" << endl;
+        cout << "-------------------" << endl;
+        for (auto it = reservations.begin(); it != reservations.end(); ++it) {
+            Reservation* reservation = (*it);
+            Room* room = reservation->getRoom();
+            Customer* customer = reservation->getCustomer();
+            string checkInDate = reservation->getCheckInDate();
+            string checkOutDate = reservation->getCheckOutDate();
+            int numNights = 0; // TODO: calculate number of nights based on check-in and check-out dates
+            double totalCost = 0.0; // TODO: calculate total cost based on room rate and number of nights
+            cout << "Room " << room->getRoomNumber() << ": " << customer->getName() << " (" << customer->getPhoneNumber() << ")" << endl;
+            cout << "Check-in: " << checkInDate << ", Check-out: " << checkOutDate << ", Nights: " << numNights << ", Total Cost: " << totalCost << endl;
+        }
+    }
+};
+int main() {
+    Hotel hotel;
+    while (true) {
+        cout << "What would you like to do?" << endl;
+        cout << "1. Create a new room" << endl;
+        cout << "2. Delete an existing room" << endl;
+        cout << "3. Update room availability status" << endl;
+        cout << "4. Check-in a customer" << endl;
+        cout << "5. Get available rooms" << endl;
+        cout << "6. Search for a customer" << endl;
+        cout << "7. Check-out a room" << endl;
+        cout << "8. Generate guest summary report" << endl;
+        cout << "9. Exit" << endl;
+        int choice;
+        cin >> choice;
+        switch (choice) {
+        case 1: {
+            cout << "Enter room number: ";
+            int roomNumber;
+            cin >> roomNumber;
+            cout << "Enter room type: ";
+            string roomType;
+            cin >> roomType;
+            cout << "Enter room rate: ";
+            float roomRate;
+            cin >> roomRate;
+            hotel.createRoom(roomNumber, roomType, roomRate);
+            break;
+        }
+        case 2: {
+            cout << "Enter room number: ";
+            int roomNumber;
+            cin >> roomNumber;
+            hotel.deleteRoom(roomNumber);
+            break;
+        }
+        case 3: {
+            cout << "Enter room number: ";
+            int roomNumber;
+            cin >> roomNumber;
+            cout << "Enter availability status (1 = available, 0 = not available): ";
+            bool availability;
+            cin >> availability;
+            hotel.updateRoomAvailability(roomNumber, availability);
+            break;
+        }
+        case 4: {
+            cout << "Enter room number: ";
+            int roomNumber;
+            cin >> roomNumber;
+            cout << "Enter customer name: ";
+            string customerName;
+            cin >> customerName;
+            cout << "Enter customer address: ";
+            string customerAddress;
+            cin >> customerAddress;
+            cout << "Enter customer phone number: ";
+            string customerPhoneNumber;
+            cin >> customerPhoneNumber;
+            cout << "Enter check-in date (YYYY-MM-DD): ";
+            string checkInDate;
+            cin >> checkInDate;
+            cout << "Enter check-out date (YYYY-MM-DD): ";
+            string checkOutDate;
+            cin >> checkOutDate;
+            hotel.checkIn(roomNumber, customerName, customerAddress, customerPhoneNumber, checkInDate, checkOutDate);
+            break;
+        }
+        case 5: {
+            cout << "Enter check-in date (YYYY-MM-DD): ";
+            string checkInDate;
+            cin >> checkInDate;
+            cout << "Enter check-out date (YYYY-MM-DD): ";
+            string checkOutDate;
+            cin >> checkOutDate;
+            vector<Room*> availableRooms = hotel.getAvailableRooms(checkInDate, checkOutDate);
+            if (availableRooms.empty()) {
+                cout << "No rooms available during the specified date range." << endl;
+            }
+            else {
+                cout << "Available rooms:" << endl;
+                for (auto it = availableRooms.begin(); it != availableRooms.end(); ++it) {
+                    cout << "Room " << (*it)->getRoomNumber() << " (" << (*it)->getRoomType() << ", $" << (*it)->getRoomRate() << " per night)" << endl;
+                }
+            }
+            break;
+        }
+        case 6: {
+            cout << "Enter customer name or phone number: ";
+            string customerInfo;
+            cin >> customerInfo;
+            vector<Reservation*> customerReservations = hotel.searchCustomer(customerInfo, customerInfo);
+            if (customerReservations.empty()) {
+                cout << "No reservations found for the specified customer." << endl;
+            }
+            else {
+                cout << "Reservations for " << customerInfo << ":" << endl;
+                for (auto it = customerReservations.begin(); it != customerReservations.end(); ++it) {
+                    Reservation* reservation = (*it);
+                    Room* room = reservation->getRoom();
+                    Customer* customer = reservation->getCustomer();
+                    cout << "Room " << room->getRoomNumber() << " (" << room->getRoomType() << ", $" << room->getRoomRate() << " per night)" << endl;
+                    cout << "Reserved by " << customer->getName() << " (" << customer->getPhoneNumber() << ")" << endl;
+                    cout << "Check-in date: " << reservation->getCheckInDate() << endl;
+                    cout << "Check-out date: " << reservation->getCheckOutDate() << endl;
+                    cout << "Total cost: $" << reservation->getTotalCost() << endl;
+                }
+            }
+            break;
+        }
+        case 7: {
+            cout << "Enter room number: ";
+            int roomNumber;
+            cin >> roomNumber;
+            cout << "Enter check-out date (YYYY-MM-DD): ";
+            string checkOutDate;
+            cin >> checkOutDate;
+            hotel.checkOut(roomNumber, checkOutDate);
+            break;
+        }
+        case 8: {
+            vector<Reservation*> allReservations = hotel.getAllReservations();
+            if (allReservations.empty()) {
+                cout << "No reservations found." << endl;
+            }
+            else {
+                cout << "Guest summary report:" << endl;
+                for (auto it = allReservations.begin(); it != allReservations.end(); ++it) {
+                    Reservation* reservation = *it;
+                    Room* room = reservation->getRoom();
+                    Customer* customer = reservation->getCustomer();
+                    cout << "Room " << room->getRoomNumber() << " (" << room->getRoomType() << ", $" << room->getRoomRate() << " per night)" << endl;
+                    cout << "Reserved by " << customer->getName() << " (" << customer->getPhoneNumber() << ")" << endl;
+                    cout << "Check-in date: " << reservation->getCheckInDate() << endl;
+                    cout << "Check-out date: " << reservation->getCheckOutDate() << endl;
+                    cout << "Total cost: $" << reservation->getTotalCost() << endl << endl;
+                }
+            }
+            break;
+        }
+        case 9: {
+            exit(0);
+        }
+        default: {
+            cout << "Invalid choice." << endl;
+            break;
+        }
+        }
+    }
+    return 0;
+}
